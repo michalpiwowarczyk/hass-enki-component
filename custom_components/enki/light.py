@@ -12,14 +12,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.color import value_to_brightness
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from . import MyConfigEntry
+from . import EnkiConfigEntry
 from .base import EnkiBaseEntity
 from .coordinator import EnkiCoordinator
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: MyConfigEntry,
+    config_entry: EnkiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
     """Set up the Binary Sensors."""

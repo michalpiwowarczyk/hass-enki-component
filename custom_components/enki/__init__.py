@@ -16,7 +16,7 @@ from .coordinator import EnkiCoordinator
 #PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
 PLATFORMS: list[Platform] = [Platform.LIGHT]
 
-type MyConfigEntry = ConfigEntry[RuntimeData]
+type EnkiConfigEntry = ConfigEntry[RuntimeData]
 
 
 @dataclass
@@ -26,7 +26,7 @@ class RuntimeData:
     coordinator: DataUpdateCoordinator
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: MyConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, config_entry: EnkiConfigEntry) -> bool:
     """Set up Enki Integration from a config entry."""
 
     # Initialise the coordinator that manages data updates from your api.
@@ -79,7 +79,7 @@ async def async_remove_config_entry_device(
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: MyConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, config_entry: EnkiConfigEntry) -> bool:
     """Unload a config entry."""
     # This is called when you remove your integration or shutdown HA.
     # If you have created any custom services, they need to be removed here too.
