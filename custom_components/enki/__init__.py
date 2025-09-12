@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
-import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -17,7 +15,6 @@ from .coordinator import ExampleCoordinator
 
 #PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
 PLATFORMS: list[Platform] = [Platform.LIGHT]
-#PLATFORMS: list[Platform] = []
 
 type MyConfigEntry = ConfigEntry[RuntimeData]
 

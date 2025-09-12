@@ -5,7 +5,6 @@ of making this example code executable.
 """
 import aiohttp
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import Any
 
 from .const import (
