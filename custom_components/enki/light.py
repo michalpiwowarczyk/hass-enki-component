@@ -1,11 +1,16 @@
 """Light setup for our Integration."""
 
+from typing import Optional
 from datetime import timedelta
 from typing import Any
+import math
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
+from homeassistant.components.light.const import DEFAULT_MIN_KELVIN, DEFAULT_MAX_KELVIN 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util.color import value_to_brightness
+from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
 from . import MyConfigEntry
 from .base import ExampleBaseEntity
@@ -61,23 +66,58 @@ class EnkiLight(ExampleBaseEntity, LightEntity):
     """Implementation of an light depending on its capabilities."""
     _attr_supported_color_modes = set()
     _attr_color_mode = None
+    _attr_min_color_temp_kelvin = None
+    _attr_max_color_temp_kelvin = None
+    BRIGHTNESS_SCALE = (1,255)
 
     def __init__(
         self, coordinator: ExampleCoordinator, device: dict[str, Any], parameter: str
     ) -> None:
         """Initialise entity."""
         super().__init__(coordinator, device, parameter)
-        if "switch_electrical_power" in  device["capabilities"]:
-            self._attr_supported_color_modes.add(ColorMode.ONOFF)
-            self._attr_color_mode = ColorMode.ONOFF
         
+        if "possibleValues" in device and "change_brightness" in device["possibleValues"]:
+            min = device["possibleValues"]["change_brightness"]["range"]["min"]
+            max = device["possibleValues"]["change_brightness"]["range"]["max"]
+            self.BRIGHTNESS_SCALE = (min, max)
+
         if "change_color_temperature" in device["capabilities"]:
             self._attr_supported_color_modes.add(ColorMode.COLOR_TEMP)
             self._attr_color_mode = ColorMode.COLOR_TEMP
+            if "possibleValues" in device and "change_color_temperature" in device["possibleValues"]:
+                values = device["possibleValues"]["change_color_temperature"]["values"]
+                min = int(values[0][1:-1])
+                max = int(values[-1][1:-1])
+                self._attr_min_color_temp_kelvin=min
+                self._attr_max_color_temp_kelvin=max
+            else:
+                self._attr_min_color_temp_kelvin=DEFAULT_MIN_KELVIN
+                self._attr_max_color_temp_kelvin=DEFAULT_MAX_KELVIN
 
         if "change_brightness" in device["capabilities"]:
-            self._attr_supported_color_modes.add(ColorMode.BRIGHTNESS)
-            self._attr_color_mode = ColorMode.BRIGHTNESS
+            if len(self._attr_supported_color_modes) == 0:
+                self._attr_supported_color_modes.add(ColorMode.BRIGHTNESS)
+            if self._attr_color_mode is None:
+                self._attr_color_mode = ColorMode.BRIGHTNESS
+
+        if "switch_electrical_power" in  device["capabilities"]:
+            if len(self._attr_supported_color_modes) == 0:
+                self._attr_supported_color_modes.add(ColorMode.ONOFF)
+                self._attr_color_mode = ColorMode.ONOFF
+
+        if len(self._attr_supported_color_modes) > 1:
+            self._attr_color_mode = ColorMode.UNKNOWN
+
+    @property
+    def brightness(self) -> Optional[int]:
+        """Return the current brightness."""
+        return value_to_brightness(BRIGHTNESS_SCALE, self._device.brightness)
+
+    async def async_turn_on(self, **kwargs) -> None:
+        """Turn device on."""
+        value_in_range = math.ceil(percentage_to_ranged_value(BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS]))
+
+        
 
 class ExampleOnOffLight(ExampleBaseEntity, LightEntity):
     """Implementation of an on/off light.
