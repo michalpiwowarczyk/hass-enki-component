@@ -12,7 +12,7 @@ from homeassistant.const import (
 from homeassistant.core import DOMAIN, HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import API, APIAuthError, Device, DeviceType
+from .api import API, APIAuthError
 from .const import DEFAULT_SCAN_INTERVAL, LOGGER
 
 class ExampleCoordinator(DataUpdateCoordinator):

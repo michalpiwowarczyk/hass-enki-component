@@ -1,30 +1,23 @@
 """Config flow for Integration 101 Template integration."""
 
 from __future__ import annotations
-
-import logging
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant.config_entries import (
-    ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
-    OptionsFlow,
 )
 from homeassistant.const import (
     CONF_PASSWORD,
-    CONF_SCAN_INTERVAL,
     CONF_USERNAME,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import API, APIAuthError, APIConnectionError
-from .const import DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN, LOGGER
 
 # TODO adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
@@ -74,7 +67,7 @@ class EnkiConfigFlow(ConfigFlow, domain=DOMAIN):
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
+                LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
 
             if "base" not in errors:
@@ -110,7 +103,7 @@ class EnkiConfigFlow(ConfigFlow, domain=DOMAIN):
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
+                LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
                 return self.async_update_reload_and_abort(

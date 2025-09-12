@@ -1,22 +1,15 @@
 """Light setup for our Integration."""
 
 from datetime import timedelta
-#import logging
 from typing import Any
-
-#import voluptuous as vol
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import MyConfigEntry
 from .base import ExampleBaseEntity
-#from .const import CONF_OFF_TIME, SET_OFF_TIMER_ENTITY_SERVICE_NAME
 from .coordinator import ExampleCoordinator
-
-#_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(

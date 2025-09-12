@@ -6,7 +6,6 @@ of making this example code executable.
 import aiohttp
 from dataclasses import dataclass
 from enum import StrEnum
-from random import choice, randrange
 from typing import Any
 
 from .const import (
@@ -19,27 +18,7 @@ from .const import (
     ENKI_REFERENTIEL_API_KEY,
     ENKI_USER_API_KEY)
 
-proxy = "http://proxy.rd.francetelecom.fr:8080/"
-#proxy = None
-
-class DeviceType(StrEnum):
-    """Device types."""
-
-    TEMP_SENSOR = "temp_sensor"
-    DOOR_SENSOR = "door_sensor"
-    OTHER = "other"
-
-DEVICES = [
-    {"id": 1, "type": DeviceType.TEMP_SENSOR},
-    {"id": 2, "type": DeviceType.TEMP_SENSOR},
-    {"id": 3, "type": DeviceType.TEMP_SENSOR},
-    {"id": 4, "type": DeviceType.TEMP_SENSOR},
-    {"id": 1, "type": DeviceType.DOOR_SENSOR},
-    {"id": 2, "type": DeviceType.DOOR_SENSOR},
-    {"id": 3, "type": DeviceType.DOOR_SENSOR},
-    {"id": 4, "type": DeviceType.DOOR_SENSOR},
-]
-
+proxy = None
 
 @dataclass
 class Device:
@@ -48,11 +27,6 @@ class Device:
     device_id: str
     node_id: str
     device_name: str
-    
-    #device_unique_id: str
-    #device_type: DeviceType
-    #name: str
-    #state: int | bool
 
 class API:
     """Class for example API."""
