@@ -18,12 +18,12 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import ExampleCoordinator
+from .coordinator import EnkiCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ExampleBaseEntity(CoordinatorEntity):
+class EnkiBaseEntity(CoordinatorEntity):
     """Base Entity Class.
 
     This inherits a CoordinatorEntity class to register your entites to be updated
@@ -31,7 +31,7 @@ class ExampleBaseEntity(CoordinatorEntity):
     interval or by forcing an update.
     """
 
-    coordinator: ExampleCoordinator
+    coordinator: EnkiCoordinator
 
     # ----------------------------------------------------------------------------
     # Using attr_has_entity_name = True causes HA to name your entities with the
@@ -45,7 +45,7 @@ class ExampleBaseEntity(CoordinatorEntity):
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator: ExampleCoordinator, device: dict[str, Any], parameter: str
+        self, coordinator: EnkiCoordinator, device: dict[str, Any], parameter: str
     ) -> None:
         """Initialise entity."""
         super().__init__(coordinator)

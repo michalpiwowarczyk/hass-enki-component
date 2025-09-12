@@ -13,8 +13,8 @@ from homeassistant.util.color import value_to_brightness
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
 from . import MyConfigEntry
-from .base import ExampleBaseEntity
-from .coordinator import ExampleCoordinator
+from .base import EnkiBaseEntity
+from .coordinator import EnkiCoordinator
 
 
 async def async_setup_entry(
@@ -24,7 +24,7 @@ async def async_setup_entry(
 ):
     """Set up the Binary Sensors."""
     # This gets the data update coordinator from the config entry runtime data as specified in your __init__.py
-    coordinator: ExampleCoordinator = config_entry.runtime_data.coordinator
+    coordinator: EnkiCoordinator = config_entry.runtime_data.coordinator
 
     # ----------------------------------------------------------------------------
     # Here we are going to add some lights entities for the lights in our mock data.
@@ -62,7 +62,7 @@ async def async_setup_entry(
     # Create the lights.
     async_add_entities(lights)
 
-class EnkiLight(ExampleBaseEntity, LightEntity):
+class EnkiLight(EnkiBaseEntity, LightEntity):
     """Implementation of an light depending on its capabilities."""
     _attr_supported_color_modes = set()
     _attr_color_mode = None
@@ -71,7 +71,7 @@ class EnkiLight(ExampleBaseEntity, LightEntity):
     BRIGHTNESS_SCALE = (1,255)
 
     def __init__(
-        self, coordinator: ExampleCoordinator, device: dict[str, Any], parameter: str
+        self, coordinator: EnkiCoordinator, device: dict[str, Any], parameter: str
     ) -> None:
         """Initialise entity."""
         super().__init__(coordinator, device, parameter)
@@ -119,10 +119,10 @@ class EnkiLight(ExampleBaseEntity, LightEntity):
 
         
 
-class ExampleOnOffLight(ExampleBaseEntity, LightEntity):
+class ExampleOnOffLight(EnkiBaseEntity, LightEntity):
     """Implementation of an on/off light.
 
-    This inherits our ExampleBaseEntity to set common properties.
+    This inherits our EnkiBaseEntity to set common properties.
     See base.py for this class.
 
     https://developers.home-assistant.io/docs/core/entity/light/

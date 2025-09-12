@@ -14,8 +14,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api import API, APIAuthError
 from .const import DEFAULT_SCAN_INTERVAL, LOGGER
 
-class ExampleCoordinator(DataUpdateCoordinator):
-    """My example coordinator."""
+class EnkiCoordinator(DataUpdateCoordinator):
+    """My Enki coordinator."""
 
     data: list[dict[str, Any]]
 
