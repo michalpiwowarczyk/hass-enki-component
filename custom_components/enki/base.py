@@ -51,7 +51,7 @@ class ExampleBaseEntity(CoordinatorEntity):
         super().__init__(coordinator)
         self.device = device
         self.device_id = device["deviceId"]
-        self.parameter = parameter
+        self.parameter = self.coordinator.get_device_parameter(self.device_id, "deviceName")
 
     @property
     def available(self) -> bool:
