@@ -32,24 +32,6 @@ async def async_setup_entry(
     # ----------------------------------------------------------------------------
     lights = []
 
-    # On/Off lights
-    lights.extend(
-        [
-            ExampleOnOffLight(coordinator, device, "state")
-            for device in coordinator.data
-            if device.get("type") == "ON_OFF_LIGHT"
-        ]
-    )
-
-    # Dimmable lights
-    lights.extend(
-        [
-            ExampleDimmableLight(coordinator, device, "state")
-            for device in coordinator.data
-            if device.get("type") == "DIMMABLE_LIGHT"
-        ]
-    )
-
     lights.extend(
         [
             EnkiLight(coordinator, device, "state")
