@@ -1,12 +1,9 @@
 """Light setup for our Integration."""
 
 from typing import Optional
-from datetime import timedelta
 from typing import Any
-import math
 
-
-from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
+from homeassistant.components.light import ColorMode, LightEntity
 from homeassistant.components.light.const import DEFAULT_MIN_KELVIN, DEFAULT_MAX_KELVIN 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
