@@ -9,6 +9,7 @@ from homeassistant.config_entries import (
     ConfigFlow,
     ConfigFlowResult,
 )
+
 from homeassistant.const import (
     CONF_PASSWORD,
     CONF_USERNAME,
@@ -19,14 +20,12 @@ from homeassistant.exceptions import HomeAssistantError
 from .api import API, APIAuthError, APIConnectionError
 from .const import DOMAIN, LOGGER
 
-# TODO adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
     }
 )
-
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect.

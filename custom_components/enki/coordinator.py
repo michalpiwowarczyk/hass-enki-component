@@ -1,5 +1,5 @@
 """Integration 101 Template integration using DataUpdateCoordinator."""
-
+import asyncio
 from datetime import timedelta
 from typing import Any
 
@@ -51,8 +51,6 @@ class EnkiCoordinator(DataUpdateCoordinator):
         so entities can quickly look up their data.
         """
         try:
-            if not self.api.connected:
-                await self.api.connect()
             devices = await self.api.get_devices()
         except APIAuthError as err:
             LOGGER.error(err)
@@ -85,3 +83,13 @@ class EnkiCoordinator(DataUpdateCoordinator):
         """Get the parameter value of one of our devices from our api data."""
         if device := self.get_device(device_id):
             return device.get(parameter)
+    
+    def update_data(self, device_id:int, parentKey: str, key:str, value):
+        """Update device attribute"""
+        # trick to force data value, refreshing after posting data update needs too much time to update
+        device = self.get_device(device_id)
+        if parentKey is None:
+            device[key] = value
+        else:
+            device[parentKey][key] = value
+        self.async_set_updated_data(self.data)

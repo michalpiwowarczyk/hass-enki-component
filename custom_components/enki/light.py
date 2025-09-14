@@ -5,17 +5,16 @@ from datetime import timedelta
 from typing import Any
 import math
 
+
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.components.light.const import DEFAULT_MIN_KELVIN, DEFAULT_MAX_KELVIN 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util.color import value_to_brightness
-from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
 from . import EnkiConfigEntry
 from .base import EnkiBaseEntity
 from .coordinator import EnkiCoordinator
-
+from .const import LOGGER
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -75,10 +74,12 @@ class EnkiLight(EnkiBaseEntity, LightEntity):
     ) -> None:
         """Initialise entity."""
         super().__init__(coordinator, device, parameter)
-        
+        self._device = device
         if "possibleValues" in device and "change_brightness" in device["possibleValues"]:
             min = device["possibleValues"]["change_brightness"]["range"]["min"]
             max = device["possibleValues"]["change_brightness"]["range"]["max"]
+            LOGGER.debug("brightness min : " + str(min))
+            LOGGER.debug("brightness max : " + str(max))
             self.BRIGHTNESS_SCALE = (min, max)
 
         if "change_color_temperature" in device["capabilities"]:
@@ -90,6 +91,9 @@ class EnkiLight(EnkiBaseEntity, LightEntity):
                 max = int(values[-1][1:-1])
                 self._attr_min_color_temp_kelvin=min
                 self._attr_max_color_temp_kelvin=max
+                self._color_temp_values = []
+                for val in values:
+                    self._color_temp_values.append(int(val[1:-1]))
             else:
                 self._attr_min_color_temp_kelvin=DEFAULT_MIN_KELVIN
                 self._attr_max_color_temp_kelvin=DEFAULT_MAX_KELVIN
@@ -109,108 +113,48 @@ class EnkiLight(EnkiBaseEntity, LightEntity):
             self._attr_color_mode = ColorMode.UNKNOWN
 
     @property
-    def brightness(self) -> Optional[int]:
-        """Return the current brightness."""
-        return value_to_brightness(BRIGHTNESS_SCALE, self._device.brightness)
-
-    async def async_turn_on(self, **kwargs) -> None:
-        """Turn device on."""
-        value_in_range = math.ceil(percentage_to_ranged_value(BRIGHTNESS_SCALE, kwargs[ATTR_BRIGHTNESS]))
-
-        
-
-class ExampleOnOffLight(EnkiBaseEntity, LightEntity):
-    """Implementation of an on/off light.
-
-    This inherits our EnkiBaseEntity to set common properties.
-    See base.py for this class.
-
-    https://developers.home-assistant.io/docs/core/entity/light/
-    """
-
-    _attr_supported_color_modes = {ColorMode.ONOFF}
-    _attr_color_mode = ColorMode.ONOFF
-
-    @property
     def is_on(self) -> bool | None:
         """Return if the binary sensor is on."""
         # This needs to enumerate to true or false
+        last_reported_values = self.coordinator.get_device_parameter(self.device_id, "lastReportedValue")
         return (
-            self.coordinator.get_device_parameter(self.device_id, self.parameter)
-            == "ON"
+            last_reported_values["power"] == "ON"
         )
+
+    def closest_temp_value(self, target_value):
+        return min(self._color_temp_values, key=lambda x: abs(x - target_value)) 
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
-        await self.hass.async_add_executor_job(
-            self.coordinator.api.set_data, self.device_id, self.parameter, "ON"
-        )
-        # ----------------------------------------------------------------------------
-        # Use async_refresh on the DataUpdateCoordinator to perform immediate update.
-        # Using self.async_update or self.coordinator.async_request_refresh may delay update due
-        # to trying to batch requests.
-        # ----------------------------------------------------------------------------
-        await self.coordinator.async_refresh()
+        if "brightness" in kwargs:
+            ha_value = kwargs["brightness"]
+            value = round(ha_value / (255/self.BRIGHTNESS_SCALE[1]), 2)
+            LOGGER.debug(f"setting brightness value to {ha_value} => {value}")
+            await self.coordinator.api.change_light_state(self._device["homeId"], self._device["nodeId"], "brightness", value)
+            self.coordinator.update_data(self.device_id, "lastReportedValue", "brightness", value)
+        elif "color_temp_kelvin" in kwargs:
+            ha_value = kwargs["color_temp_kelvin"]
+            value = self.closest_temp_value(ha_value)
+            LOGGER.debug("setting color temp to closest value : " + str(ha_value) + " => " + str(value))
+            await self.coordinator.api.change_light_state(self._device["homeId"], self._device["nodeId"], "colorTemperature", "T" + str(value) + "K")
+            self.coordinator.update_data(self.device_id, "lastReportedValue", "colorTemperature", "T" + str(value) + "K")
+        else:
+            await self.coordinator.api.change_light_state(self._device["homeId"], self._device["nodeId"], "power", "ON")
+            self.coordinator.update_data(self.device_id, "lastReportedValue", "power", "ON")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
-        await self.hass.async_add_executor_job(
-            self.coordinator.api.set_data, self.device_id, self.parameter, "OFF"
-        )
-        # ----------------------------------------------------------------------------
-        # Use async_refresh on the DataUpdateCoordinator to perform immediate update.
-        # Using self.async_update or self.coordinator.async_request_refresh may delay update due
-        # to trying to batch requests.
-        # ----------------------------------------------------------------------------
-        await self.coordinator.async_refresh()
-
-    async def async_set_off_timer(self, off_time: timedelta) -> None:
-        """Handle the set off timer service call.
-
-        Important here to have your service parameters included in your
-        function as they are passed as named parameters.
-        """
-        await self.hass.async_add_executor_job(
-            self.coordinator.api.set_data,
-            self.device_id,
-            "off_timer",
-            ":".join(str(off_time).split(":")[:2]),
-        )
-        # We have made a change to our device, so call a refresh to get updated data.
-        # We use async_request_refresh here to batch the updates in case you select
-        # multiple entities.
-        await self.coordinator.async_request_refresh()
-
-
-class ExampleDimmableLight(ExampleOnOffLight):
-    """Implementation of a dimmable light."""
-
-    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
-    _attr_color_mode = ColorMode.BRIGHTNESS
+        await self.coordinator.api.change_light_state(self._device["homeId"], self._device["nodeId"], "power", "OFF")
+        self.coordinator.update_data(self.device_id, "lastReportedValue", "power", "OFF")
 
     @property
-    def brightness(self) -> int:
-        """Return the brightness of this light between 0..255."""
-        # Our light is in range 0..100, so convert
-        return int(
-            self.coordinator.get_device_parameter(self.device_id, "brightness")
-            * (255 / 100)
-        )
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the entity on."""
-        if ATTR_BRIGHTNESS in kwargs:
-            brightness = int(kwargs[ATTR_BRIGHTNESS] * (100 / 255))
-            await self.hass.async_add_executor_job(
-                self.coordinator.api.set_data, self.device_id, "brightness", brightness
-            )
-        else:
-            await self.hass.async_add_executor_job(
-                self.coordinator.api.set_data, self.device_id, self.parameter, "ON"
-            )
-        # ----------------------------------------------------------------------------
-        # Use async_refresh on the DataUpdateCoordinator to perform immediate update.
-        # Using self.async_update or self.coordinator.async_request_refresh may delay update due
-        # to trying to batch requests and cause wierd UI behaviour.
-        # ----------------------------------------------------------------------------
-        await self.coordinator.async_refresh()
+    def brightness(self) -> Optional[int]:
+        """Return the current brightness."""
+        last_reported_values = self.coordinator.get_device_parameter(self.device_id, "lastReportedValue")
+        return last_reported_values["brightness"]*(255/self.BRIGHTNESS_SCALE[1])
+    
+    @property
+    def color_temp_kelvin(self) -> int | None:
+        """Return the color temperature in Kelvin."""
+        last_reported_values = self.coordinator.get_device_parameter(self.device_id, "lastReportedValue")
+        return int(last_reported_values["colorTemperature"][1:-1])

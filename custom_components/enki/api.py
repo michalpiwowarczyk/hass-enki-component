@@ -3,6 +3,7 @@
 import aiohttp
 from dataclasses import dataclass
 from typing import Any
+import time
 
 from .const import (
     LOGGER,
@@ -12,7 +13,7 @@ from .const import (
     ENKI_BFF_API_KEY,
     ENKI_NODE_API_KEY,
     ENKI_REFERENTIEL_API_KEY,
-    ENKI_USER_API_KEY)
+    ENKI_LIGHTS_API_KEY)
 
 proxy = None
 
@@ -31,12 +32,17 @@ class API:
         """Initialise."""
         self.user = user
         self.pwd = pwd
-        self.connected: bool = False
 
     @property
     def controller_name(self) -> str:
         """Return the name of the controller."""
         return self.user
+
+    async def check_connected(self) -> bool:
+        """Tell if token is still valid"""
+        if not hasattr(self, '_access_token') or time.time()>self._tokenExpiresTime:
+             await self.connect()
+        return True
 
     async def connect(self) -> bool:
         """Connect to the Enki API."""
@@ -57,7 +63,8 @@ class API:
                         self._access_token = response["access_token"]
                         self._refresh_token = response["refresh_token"]
                         self._token_type = response["token_type"]
-                        self.connected = True
+                        tokenExpiresTime = time.time() + response["expires_in"]*1000
+                        self._tokenExpiresTime = tokenExpiresTime
                         return True
                     else:
                         raise APIAuthError("Error connecting to api. Invalid username or password.")
@@ -67,6 +74,7 @@ class API:
 # *******************************************************
     async def get_homes(self):
         """Get list of homes."""
+        await self.check_connected()
         homes = []
         async with aiohttp.ClientSession() as session, session.request(
              method="GET",
@@ -84,21 +92,6 @@ class API:
                 else:
                     raise ValueError("bad credentials")
 
-    async def get_home(self, home_id):
-        """Get details on home."""
-        async with aiohttp.ClientSession() as session, session.request(
-             method="GET",
-             url=f"{ENKI_URL}/api-enki-home-prod/v1/homes/{home_id}",
-             headers={"Authorization": f"{self._token_type} {self._access_token}",
-                      "X-Gateway-APIKey": ENKI_HOME_API_KEY},
-             proxy=proxy,) as resp:
-
-              if resp.status == 200:
-                  response = await resp.json()
-                  LOGGER.debug("get_home : " + str(response))
-              else:
-                raise ValueError("bad credentials")
-
     def merge_properties(self, device, properties):
          for prop in properties:
             if prop != "id":
@@ -106,6 +99,7 @@ class API:
 
     async def get_items_in_section_for_home(self, home_id) -> list[dict[str, Any]]:
             """Get sections in home."""
+            await self.check_connected()
             async with aiohttp.ClientSession() as session, session.request(
              method="GET",
              url=f"{ENKI_URL}/api-enki-mobile-bff-prod/v1/dashboard/homes/{home_id}?hasGroups=true",
@@ -134,11 +128,7 @@ class API:
                             device_info = await self.get_device(device.get("deviceId"))
                             self.merge_properties(device, device_info)
 
-                            if device["type"] == "lights" :
-                                 # get lights details (on/off, brightness, temperature, etc)
-                                 #light_details = await self.get_light_details(device.get("deviceId"))
-                                 #self.merge_properties(device, light_details)
-                                 pass
+                            await self.refresh_device(device)
 
                             LOGGER.debug("device : " + repr(device))
                     return devices
@@ -146,8 +136,19 @@ class API:
                 else:
                     raise ValueError("bad credentials")
 
+    async def refresh_device(self, device): 
+        """Update device details"""
+        device_info = await self.get_device(device.get("deviceId"))
+        self.merge_properties(device, device_info)
+        if device["type"] == "lights" and device["isEnabled"]:
+            # get lights details (on/off, brightness, temperature, etc)
+            light_details = await self.get_light_details(device.get("homeId"), device.get("nodeId"))
+            self.merge_properties(device, light_details)
+        return device
+
     async def get_node(self, home_id, node_id):
         """Get details on a node."""
+        await self.check_connected()
         async with aiohttp.ClientSession() as session, session.request(
              method="GET",
              url=f"{ENKI_URL}/api-enki-node-agg-prod/v1/nodes/{node_id}",
@@ -167,6 +168,7 @@ class API:
 
     async def get_device(self, id):
         """Get details on a device."""
+        await self.check_connected()
         async with aiohttp.ClientSession() as session, session.request(
              method="GET",
              url=f"{ENKI_URL}/api-enki-referentiel-agg-prod/v1/devices/{id}?version=2.15.0",
@@ -182,13 +184,15 @@ class API:
                 else:
                     raise ValueError("bad credentials")
 
-    async def get_light_details(self,id):
+    async def get_light_details(self,home_id, node_id):
          """Get light state"""
+         await self.check_connected()
          async with aiohttp.ClientSession() as session, session.request(
              method="GET",
-             url=f"{ENKI_URL}/TODO/{id}?version=2.15.0",
+             url=f"{ENKI_URL}/api-enki-lighting-prod/v1/lighting/{node_id}/check-light-state",
              headers={"Authorization": f"{self._token_type} {self._access_token}",
-                      "X-Gateway-APIKey": ENKI_REFERENTIEL_API_KEY},
+                      "homeId": home_id,
+                      "X-Gateway-APIKey": ENKI_LIGHTS_API_KEY},
              proxy=proxy,) as resp:
 
                 if resp.status == 200:
@@ -199,27 +203,28 @@ class API:
                 else:
                     raise ValueError("bad credentials")
 
-    async def get_current_user(self):
-         """Get details on the current user."""
-         async with aiohttp.ClientSession() as session, session.request(
-             method="GET",
-             url=f"{ENKI_URL}/api-enki-user-prod/v1/users/current",
-             headers={"Authorization": f"{self._token_type} {self._access_token}",
-                      "X-Gateway-APIKey": ENKI_USER_API_KEY},
-             proxy=proxy,) as resp:
+    async def change_light_state(self, home_id, node_id, parameter, value):
+        await self.check_connected()
+        
+        data = (await self.get_light_details(home_id, node_id))["lastReportedValue"]
+        data[parameter] = value
+        
+        async with aiohttp.ClientSession() as session, session.request(
+            method="POST",
+            url=f"{ENKI_URL}/api-enki-lighting-prod/v1/lighting/{node_id}/change-light-state",
+            headers={"Authorization": f"{self._token_type} {self._access_token}",
+                    "homeId": home_id,
+                    "X-Gateway-APIKey": ENKI_LIGHTS_API_KEY},
+            proxy=proxy,
+            json=data) as resp:
 
-                if resp.status == 200:
+                if resp.status != 202:
                     response = await resp.json()
+                    LOGGER.debug(resp.status)
                     LOGGER.debug(response)
-                else:
                     raise ValueError("bad credentials")
 
 # *******************************************************
-
-    def disconnect(self) -> bool:
-        """Disconnect from api."""
-        self.connected = False
-        return True
 
     async def get_devices(self) -> list[dict[str, Any]]:
         """Get devices on api."""
