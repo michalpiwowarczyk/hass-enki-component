@@ -1,5 +1,4 @@
 """Integration 101 Template integration using DataUpdateCoordinator."""
-import asyncio
 from datetime import timedelta
 from typing import Any
 
