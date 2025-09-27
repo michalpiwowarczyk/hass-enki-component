@@ -13,7 +13,8 @@ from .const import (
     ENKI_BFF_API_KEY,
     ENKI_NODE_API_KEY,
     ENKI_REFERENTIEL_API_KEY,
-    ENKI_LIGHTS_API_KEY)
+    ENKI_LIGHTS_API_KEY,
+    ENKI_ROLLER_SHUTTER_API_KEY)
 
 proxy = None
 
@@ -144,6 +145,10 @@ class API:
             # get lights details (on/off, brightness, temperature, etc)
             light_details = await self.get_light_details(device.get("homeId"), device.get("nodeId"))
             self.merge_properties(device, light_details)
+        if device["type"] == "access_and_motorizations" and device["isEnabled"]:
+            # get roller shutter details
+            roller_shutter_details = await self.get_roller_shutter_details(device.get("homeId"), device.get("nodeId"))
+            self.merge_properties(device, roller_shutter_details)
         return device
 
     async def get_node(self, home_id, node_id):
@@ -224,7 +229,46 @@ class API:
                     LOGGER.debug(response)
                     raise ValueError("bad credentials")
 
-# *******************************************************
+    async def get_roller_shutter_details(self,home_id, node_id):
+         """Get roller shutter state"""
+         await self.check_connected()
+         async with aiohttp.ClientSession() as session, session.request(
+             method="GET",
+             url=f"{ENKI_URL}/api-enki-rolling-prod/v1/shutter/{node_id}/check-roller-shutter-state",
+             headers={"Authorization": f"{self._token_type} {self._access_token}",
+                      "homeId": home_id,
+                      "X-Gateway-APIKey": ENKI_ROLLER_SHUTTER_API_KEY},
+             proxy=proxy,) as resp:
+
+                if resp.status == 200:
+                    response = await resp.json()
+                    LOGGER.debug("get_roller_shutter_details : " + str(response))
+                    return response
+
+                else:
+                    raise ValueError("bad credentials")
+
+    async def change_roller_shutter_state(self, home_id, node_id, parameter, value):
+        await self.check_connected()
+
+        data = (await self.get_roller_shutter_details(home_id, node_id))["lastReportedValue"]
+        data[parameter] = value
+
+        async with aiohttp.ClientSession() as session, session.request(
+                method="POST",
+                url=f"{ENKI_URL}/api-enki-rolling-prod/v1/shutter/{node_id}/change-shutter-position",
+                headers={"Authorization": f"{self._token_type} {self._access_token}",
+                         "homeId": home_id,
+                         "X-Gateway-APIKey": ENKI_ROLLER_SHUTTER_API_KEY},
+                proxy=proxy,
+                json=data) as resp:
+            if resp.status != 202:
+                response = await resp.json()
+                LOGGER.debug(resp.status)
+                LOGGER.debug(response)
+                raise ValueError("bad credentials")
+
+    # *******************************************************
 
     async def get_devices(self) -> list[dict[str, Any]]:
         """Get devices on api."""
