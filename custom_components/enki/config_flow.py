@@ -12,18 +12,19 @@ from homeassistant.config_entries import (
 
 from homeassistant.const import (
     CONF_PASSWORD,
-    CONF_USERNAME,
+    CONF_USERNAME
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import API, APIAuthError, APIConnectionError
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, CONF_POOL_INTERVAL
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
+        vol.Required(CONF_POOL_INTERVAL, default=15): vol.All(int, vol.Range(min=5)),
     }
 )
 
@@ -119,6 +120,9 @@ class EnkiConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_USERNAME, default=config_entry.data[CONF_USERNAME]
                     ): str,
                     vol.Required(CONF_PASSWORD): str,
+                    vol.Required(
+                        CONF_POOL_INTERVAL, default=config_entry.data[CONF_POOL_INTERVAL]
+                    ): str,
                 }
             ),
             errors=errors,

@@ -50,8 +50,13 @@ class EnkiBaseEntity(CoordinatorEntity):
         """Initialise entity."""
         super().__init__(coordinator)
         self.device = device
-        self.device_id = device["deviceId"]
-        self.parameter = self.coordinator.get_device_parameter(self.device_id, "deviceName")
+        self.device_id = device["nodeId"]
+        #self.parameter = self.coordinator.get_device_parameter(self.device_id, "deviceName") + "-" + parameter
+        self.parameter = parameter
+#        self.entity_id = self.device_id + "-" + self.parameter
+
+    def enki_update(self, key, value) -> None:
+        raise NotImplementedError
 
     @property
     def available(self) -> bool:
@@ -63,11 +68,22 @@ class EnkiBaseEntity(CoordinatorEntity):
         """Update sensor with latest data from coordinator."""
         # This method is called by your DataUpdateCoordinator when a successful update runs.
         self.device = self.coordinator.get_device(self.device_id)
-        _LOGGER.debug(
+        _LOGGER.warning(
             "Updating device: %s, %s",
             self.device_id,
             self.coordinator.get_device_parameter(self.device_id, "deviceName"),
         )
+        try:
+            value = self.device.get("lastReportedValue")["shutterPosition"]
+            _LOGGER.warning(value)
+            if value is not None:
+                self.enki_update("position", value)
+            value = self.device.get("lastReportedValue")["shutterModeEnum"]
+            if value is not None:
+                self.enki_update("mode", value)
+        except Exception:
+            pass
+
         self.async_write_ha_state()
 
     @property
@@ -85,7 +101,7 @@ class EnkiBaseEntity(CoordinatorEntity):
         # and a device uuid, mac address or some other unique attribute.
         # ----------------------------------------------------------------------------
         return DeviceInfo(
-            name=self.coordinator.get_device_parameter(self.device_id, "deviceName"),
+            name=self.coordinator.get_device_parameter(self.device_id, "deviceName") + "-" + self.parameter,
             manufacturer=self.coordinator.get_device_parameter(self.device_id, "manufacturerId"),
             model=str(
                 self.coordinator.get_device_parameter(self.device_id, "modelNumber")
@@ -98,7 +114,7 @@ class EnkiBaseEntity(CoordinatorEntity):
             identifiers={
                 (
                     DOMAIN,
-                    self.coordinator.get_device_parameter(self.device_id, "deviceId"),
+                    self.coordinator.get_device_parameter(self.device_id, "nodeId")
                 )
             },
         )
@@ -133,4 +149,8 @@ class EnkiBaseEntity(CoordinatorEntity):
         #
         # This is even more important if your integration supports multiple instances.
         # ----------------------------------------------------------------------------
-        return f"{DOMAIN}-{self.coordinator.get_device_parameter(self.device_id, "deviceId")}-{self.parameter}"
+        uid = f"unique_id={DOMAIN}-{self.device_id}-{self.parameter}"
+        #return f"{DOMAIN}-{self.coordinator.get_device_parameter(self.device_id, "deviceId")}-{self.parameter}"
+        _LOGGER.warning(uid)
+        #return f"{DOMAIN}-{self.coordinator.get_device_parameter(self.device_id, "deviceId")}"
+        return uid

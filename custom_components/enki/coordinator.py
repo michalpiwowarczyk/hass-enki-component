@@ -11,7 +11,7 @@ from homeassistant.core import DOMAIN, HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import API, APIAuthError
-from .const import DEFAULT_SCAN_INTERVAL, LOGGER
+from .const import LOGGER, CONF_POOL_INTERVAL
 
 class EnkiCoordinator(DataUpdateCoordinator):
     """My Enki coordinator."""
@@ -24,9 +24,7 @@ class EnkiCoordinator(DataUpdateCoordinator):
         # Set variables from values entered in config flow setup
         self.user = config_entry.data[CONF_USERNAME]
         self.pwd = config_entry.data[CONF_PASSWORD]
-
-        # set variables from options.  You need a default here incase options have not been set
-        self.poll_interval = DEFAULT_SCAN_INTERVAL
+        self.poll_interval = config_entry.data[CONF_POOL_INTERVAL]
 
         # Initialise DataUpdateCoordinator
         super().__init__(
@@ -49,6 +47,7 @@ class EnkiCoordinator(DataUpdateCoordinator):
         This is the place to pre-process the data to lookup tables
         so entities can quickly look up their data.
         """
+        #LOGGER.warning(repr(self.data))
         try:
             devices = await self.api.get_devices()
         except APIAuthError as err:
@@ -59,6 +58,8 @@ class EnkiCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
         # What is returned here is stored in self.data by the DataUpdateCoordinator
+        LOGGER.warning("Coordinator async_update_data")
+        #LOGGER.warning(repr(devices))
         return devices
 
     # ----------------------------------------------------------------------------
@@ -71,7 +72,7 @@ class EnkiCoordinator(DataUpdateCoordinator):
         """Get a device entity from our api data."""
         try:
             return [
-                devices for devices in self.data if devices["deviceId"] == device_id
+                devices for devices in self.data if devices["nodeId"] == device_id
             ][0]
         except (TypeError, IndexError):
             # In this case if the device id does not exist you will get an IndexError.

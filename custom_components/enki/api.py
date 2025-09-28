@@ -60,7 +60,8 @@ class API:
 
                     if resp.status == 200:
                         response = await resp.json()
-                        LOGGER.debug("connect : " + str(response))
+                        LOGGER.warning("connect")
+                        LOGGER.info("connect : " + str(response))
                         self._access_token = response["access_token"]
                         self._refresh_token = response["refresh_token"]
                         self._token_type = response["token_type"]
@@ -86,7 +87,8 @@ class API:
 
                 if resp.status == 200:
                     response = await resp.json()
-                    LOGGER.debug("get_homes : " + str(response))
+                    LOGGER.warning("get_homes")
+                    LOGGER.info("get_homes : " + str(response))
                     for home in response["items"]:
                         homes.append(home["id"])
                     return homes
@@ -97,6 +99,13 @@ class API:
          for prop in properties:
             if prop != "id":
                 device[prop] = properties[prop]
+
+    def skip_property(self, properties, to_skip: str):
+         props = []
+         for prop in properties:
+            if prop != to_skip:
+                props[prop] = properties[prop]
+         return props
 
     async def get_items_in_section_for_home(self, home_id) -> list[dict[str, Any]]:
             """Get sections in home."""
@@ -110,7 +119,8 @@ class API:
                 devices = []
                 if resp.status == 200:
                     response = await resp.json()
-                    LOGGER.debug("get_items_in_section_for_home : " + str(response))
+                    LOGGER.warning("get_items_in_section_for_home")
+                    LOGGER.info("get_items_in_section_for_home : " + str(response))
                     for section in response["sections"]:
                         for item in section["items"]:
                             device = {
@@ -121,6 +131,9 @@ class API:
                                 "state": item["state"],
                                 "isEnabled": item["isEnabled"]
                             }
+                            LOGGER.warning("nodeId=" + device.get("nodeId"))
+                            LOGGER.warning("deviceId=" + device.get("deviceId"))
+                            LOGGER.warning("deviceName=" + device.get("deviceName"))
                             devices.append(device)
 
                             node_info = await self.get_node(home_id, device.get("nodeId"))
@@ -131,7 +144,7 @@ class API:
 
                             await self.refresh_device(device)
 
-                            LOGGER.debug("device : " + repr(device))
+                            #LOGGER.warning("device : " + repr(device))
                     return devices
                   
                 else:
@@ -139,6 +152,7 @@ class API:
 
     async def refresh_device(self, device): 
         """Update device details"""
+        LOGGER.warning("Update device details, nodeId=" + device.get("nodeId") + ", deviceId=" + device.get("deviceId"))
         device_info = await self.get_device(device.get("deviceId"))
         self.merge_properties(device, device_info)
         if device["type"] == "lights" and device["isEnabled"]:
@@ -164,8 +178,8 @@ class API:
 
                 if resp.status == 200:
                     response = await resp.json()
-                    LOGGER.debug("get_node : " + str(response))
-                    #print("\t\t" + response["icon"] + " " + response["factoryId"] + " " + response["modelNumber"])
+                    #LOGGER.warning("get_node " + node_id)
+                    LOGGER.info("get_node : " + str(response))
                     return response
 
                 else:
@@ -183,7 +197,8 @@ class API:
 
                 if resp.status == 200:
                     response = await resp.json()
-                    LOGGER.debug("get_device : " + str(response))
+                    #LOGGER.warning("get_device " + id)
+                    LOGGER.info("get_device : " + str(response))
                     return response
 
                 else:
@@ -202,7 +217,7 @@ class API:
 
                 if resp.status == 200:
                     response = await resp.json()
-                    LOGGER.debug("get_light_details : " + str(response))
+                    #LOGGER.warning("get_light_details : " + str(response))
                     return response
 
                 else:
@@ -225,8 +240,8 @@ class API:
 
                 if resp.status != 202:
                     response = await resp.json()
-                    LOGGER.debug(resp.status)
-                    LOGGER.debug(response)
+                    #LOGGER.warning(resp.status)
+                    #LOGGER.warning(response)
                     raise ValueError("bad credentials")
 
     async def get_roller_shutter_details(self,home_id, node_id):
@@ -242,17 +257,19 @@ class API:
 
                 if resp.status == 200:
                     response = await resp.json()
-                    LOGGER.debug("get_roller_shutter_details : " + str(response))
+                    #LOGGER.warning("get_roller_shutter_details " + node_id)
+                    LOGGER.info("get_roller_shutter_details : " + str(response))
                     return response
 
                 else:
                     raise ValueError("bad credentials")
 
-    async def change_roller_shutter_state(self, home_id, node_id, parameter, value):
+    async def change_roller_shutter_state(self, home_id, node_id, value):
         await self.check_connected()
 
-        data = (await self.get_roller_shutter_details(home_id, node_id))["lastReportedValue"]
-        data[parameter] = value
+        data = {
+            "value": value
+        }
 
         async with aiohttp.ClientSession() as session, session.request(
                 method="POST",
@@ -264,14 +281,18 @@ class API:
                 json=data) as resp:
             if resp.status != 202:
                 response = await resp.json()
-                LOGGER.debug(resp.status)
-                LOGGER.debug(response)
+                #LOGGER.warning("change_roller_shutter_state " + node_id)
+                #LOGGER.warning(resp.status)
+                #LOGGER.warning(response)
                 raise ValueError("bad credentials")
+            if resp.status == 202:
+                LOGGER.warning(f"change_roller_shutter_state nodeId={node_id}, value={value}")
 
     # *******************************************************
 
     async def get_devices(self) -> list[dict[str, Any]]:
         """Get devices on api."""
+        #LOGGER.warning("Get homes in get devices")
         homes = await self.get_homes()
         devices = []
         for home in homes:
