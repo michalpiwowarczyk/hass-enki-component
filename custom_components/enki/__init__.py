@@ -13,8 +13,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .coordinator import EnkiCoordinator
 
-#PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.COVER, Platform.SENSOR]
-PLATFORMS: list[Platform] = [Platform.COVER]
+PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.COVER, Platform.SENSOR]
+#PLATFORMS: list[Platform] = [Platform.COVER]
 
 type EnkiConfigEntry = ConfigEntry[RuntimeData]
 

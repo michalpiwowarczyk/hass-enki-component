@@ -7,7 +7,7 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_USERNAME,
 )
-from homeassistant.core import DOMAIN, HomeAssistant, callback
+from homeassistant.core import DOMAIN, HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import API, APIAuthError
@@ -94,20 +94,4 @@ class EnkiCoordinator(DataUpdateCoordinator):
         else:
             device[parentKey][key] = value
             #LOGGER.warning(repr(self.data))
-        self.set_updated_data(self.data)
-
-        #self.async_update_listeners()
-
-
-    @callback
-    def set_updated_data(self, data) -> None:
-        self._async_unsub_refresh()
-        self._debounced_refresh.async_cancel()
-
-        self.data = data
-        self.last_update_success = True
-
-        if self._listeners:
-            self._schedule_refresh()
-
-        self.async_update_listeners()
+        #self.set_updated_data(self.data)

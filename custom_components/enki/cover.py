@@ -110,12 +110,12 @@ class EnkiCover(EnkiBaseEntity, CoverEntity):
         """Return the current position."""
         last_reported_values = self.coordinator.get_device_parameter(self.device_id, "lastReportedValue")
         value = last_reported_values["shutterPosition"]
-        LOGGER.warning(f"current position " + value)
+        #LOGGER.warning(f"current position " + value)
         return int(value)
 
     @property
     def shutter_mode(self) -> Optional[str]:
         last_reported_values = self.coordinator.get_device_parameter(self.device_id, "lastReportedValue")
         value = last_reported_values["shutterModeEnum"]
-        LOGGER.warning(f"current mode " + value)
+        #LOGGER.warning(f"current mode " + value)
         return value

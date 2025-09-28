@@ -147,6 +147,6 @@ class EnkiBaseEntity(CoordinatorEntity):
         # ----------------------------------------------------------------------------
         uid = f"unique_id={DOMAIN}-{self.device_id}-{self.parameter}"
         #return f"{DOMAIN}-{self.coordinator.get_device_parameter(self.device_id, "deviceId")}-{self.parameter}"
-        LOGGER.warning(uid)
+        #LOGGER.warning(uid)
         #return f"{DOMAIN}-{self.coordinator.get_device_parameter(self.device_id, "deviceId")}"
         return uid

@@ -1,12 +1,10 @@
 """Roller shutter setup for our Integration."""
 
-from typing import Optional
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 
 from . import EnkiConfigEntry
 from .base import EnkiBaseEntity

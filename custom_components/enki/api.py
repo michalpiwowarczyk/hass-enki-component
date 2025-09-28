@@ -60,7 +60,7 @@ class API:
 
                     if resp.status == 200:
                         response = await resp.json()
-                        LOGGER.warning("connect")
+                        #LOGGER.warning("connect")
                         LOGGER.info("connect : " + str(response))
                         self._access_token = response["access_token"]
                         self._refresh_token = response["refresh_token"]
@@ -73,7 +73,6 @@ class API:
         except Exception as e:
             raise APIConnectionError("Error connecting to api : " + repr(e))
 
-# *******************************************************
     async def get_homes(self):
         """Get list of homes."""
         await self.check_connected()
@@ -119,7 +118,7 @@ class API:
                 devices = []
                 if resp.status == 200:
                     response = await resp.json()
-                    LOGGER.warning("get_items_in_section_for_home")
+                    #LOGGER.warning("get_items_in_section_for_home")
                     LOGGER.info("get_items_in_section_for_home : " + str(response))
                     for section in response["sections"]:
                         for item in section["items"]:
@@ -131,9 +130,9 @@ class API:
                                 "state": item["state"],
                                 "isEnabled": item["isEnabled"]
                             }
-                            LOGGER.warning("nodeId=" + device.get("nodeId"))
-                            LOGGER.warning("deviceId=" + device.get("deviceId"))
-                            LOGGER.warning("deviceName=" + device.get("deviceName"))
+                            #LOGGER.warning("nodeId=" + device.get("nodeId"))
+                            #LOGGER.warning("deviceId=" + device.get("deviceId"))
+                            #LOGGER.warning("deviceName=" + device.get("deviceName"))
                             devices.append(device)
 
                             node_info = await self.get_node(home_id, device.get("nodeId"))
@@ -152,7 +151,7 @@ class API:
 
     async def refresh_device(self, device): 
         """Update device details"""
-        LOGGER.warning("Update device details, nodeId=" + device.get("nodeId") + ", deviceId=" + device.get("deviceId"))
+        #LOGGER.warning("Update device details, nodeId=" + device.get("nodeId") + ", deviceId=" + device.get("deviceId"))
         device_info = await self.get_device(device.get("deviceId"))
         self.merge_properties(device, device_info)
         if device["type"] == "lights" and device["isEnabled"]:
@@ -287,8 +286,6 @@ class API:
                 raise ValueError("bad credentials")
             if resp.status == 202:
                 LOGGER.warning(f"change_roller_shutter_state nodeId={node_id}, value={value}")
-
-    # *******************************************************
 
     async def get_devices(self) -> list[dict[str, Any]]:
         """Get devices on api."""
