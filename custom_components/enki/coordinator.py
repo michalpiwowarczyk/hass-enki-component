@@ -7,7 +7,7 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_USERNAME,
 )
-from homeassistant.core import DOMAIN, HomeAssistant
+from homeassistant.core import DOMAIN, HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import API, APIAuthError
@@ -58,7 +58,7 @@ class EnkiCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
         # What is returned here is stored in self.data by the DataUpdateCoordinator
-        LOGGER.warning("Coordinator async_update_data")
+        #LOGGER.warning("Coordinator async_update_data")
         #LOGGER.warning(repr(devices))
         return devices
 
@@ -88,8 +88,26 @@ class EnkiCoordinator(DataUpdateCoordinator):
         """Update device attribute"""
         # trick to force data value, refreshing after posting data update needs too much time to update
         device = self.get_device(device_id)
+        #LOGGER.warning(repr(device))
         if parentKey is None:
             device[key] = value
         else:
             device[parentKey][key] = value
-        self.async_set_updated_data(self.data)
+            #LOGGER.warning(repr(self.data))
+        self.set_updated_data(self.data)
+
+        #self.async_update_listeners()
+
+
+    @callback
+    def set_updated_data(self, data) -> None:
+        self._async_unsub_refresh()
+        self._debounced_refresh.async_cancel()
+
+        self.data = data
+        self.last_update_success = True
+
+        if self._listeners:
+            self._schedule_refresh()
+
+        self.async_update_listeners()

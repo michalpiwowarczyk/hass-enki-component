@@ -10,17 +10,14 @@ and what additional properties and methods you need to add for each entity type.
 
 """
 
-import logging
 from typing import Any
 
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import EnkiCoordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class EnkiBaseEntity(CoordinatorEntity):
@@ -68,14 +65,13 @@ class EnkiBaseEntity(CoordinatorEntity):
         """Update sensor with latest data from coordinator."""
         # This method is called by your DataUpdateCoordinator when a successful update runs.
         self.device = self.coordinator.get_device(self.device_id)
-        _LOGGER.warning(
+        LOGGER.warning(
             "Updating device: %s, %s",
             self.device_id,
             self.coordinator.get_device_parameter(self.device_id, "deviceName"),
         )
         try:
             value = self.device.get("lastReportedValue")["shutterPosition"]
-            _LOGGER.warning(value)
             if value is not None:
                 self.enki_update("position", value)
             value = self.device.get("lastReportedValue")["shutterModeEnum"]
@@ -151,6 +147,6 @@ class EnkiBaseEntity(CoordinatorEntity):
         # ----------------------------------------------------------------------------
         uid = f"unique_id={DOMAIN}-{self.device_id}-{self.parameter}"
         #return f"{DOMAIN}-{self.coordinator.get_device_parameter(self.device_id, "deviceId")}-{self.parameter}"
-        _LOGGER.warning(uid)
+        LOGGER.warning(uid)
         #return f"{DOMAIN}-{self.coordinator.get_device_parameter(self.device_id, "deviceId")}"
         return uid

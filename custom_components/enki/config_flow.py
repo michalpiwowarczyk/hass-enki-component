@@ -120,9 +120,7 @@ class EnkiConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_USERNAME, default=config_entry.data[CONF_USERNAME]
                     ): str,
                     vol.Required(CONF_PASSWORD): str,
-                    vol.Required(
-                        CONF_POOL_INTERVAL, default=config_entry.data[CONF_POOL_INTERVAL]
-                    ): str,
+                    vol.Required(CONF_POOL_INTERVAL, default=config_entry.data[CONF_POOL_INTERVAL]): vol.All(int, vol.Range(min=5))
                 }
             ),
             errors=errors,
