@@ -1,8 +1,7 @@
 # hass-enki-component
 Enki custom component for Home Assistant
 
-tested with Eglo V-link tunable white
-tested with Lexman roller shutter
+tested with Eglo V-link tunable white, Lexman roller shutter
 
 Howto :
 - install HACS
